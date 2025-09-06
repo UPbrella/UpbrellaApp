@@ -46,8 +46,13 @@ function App(): JSX.Element {
     setIsLoading(true);
   };
 
+  const handleError = () => {
+    setIsLoading(false);
+  };
+
   const handleNavigationStateChange = (navState: any) => {
     setCanGoBack(navState.canGoBack);
+    setIsLoading(navState.loading);
   };
 
   const renderLoading = () => (
@@ -72,6 +77,7 @@ function App(): JSX.Element {
         allowsBackForwardNavigationGestures={true}
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
+        onError={handleError}
         onNavigationStateChange={handleNavigationStateChange}
       />
     </SafeAreaView>
