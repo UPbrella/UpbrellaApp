@@ -1,11 +1,21 @@
 package com.upbrellaapp;
 
+import android.os.Bundle;
+import android.os.Handler;
+import android.content.Intent;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint;
 import com.facebook.react.defaults.DefaultReactActivityDelegate;
 
 public class MainActivity extends ReactActivity {
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    // 스플래시 테마에서 일반 테마로 변경
+    setTheme(R.style.AppTheme);
+    super.onCreate(savedInstanceState);
+  }
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
