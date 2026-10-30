@@ -5,9 +5,11 @@
  */
 
 import React, {useEffect, useState, useRef} from 'react';
-import {SafeAreaView, StatusBar, StyleSheet, Platform, View, ActivityIndicator, Text, BackHandler, Alert} from 'react-native';
+import {SafeAreaView, StatusBar, StyleSheet, Platform, View, ActivityIndicator, Text, BackHandler, Alert, PermissionsAndroid, Linking} from 'react-native';
 import {WebView} from 'react-native-webview';
 
+const APP_URL = __DEV__ ? 'https://porodev.asuscomm.com/upbrella-dev/' : 'https://upbrella.co.kr';
+const allowedHosts = ['upbrella.co.kr', 'www.upbrella.co.kr', 'api.upbrella.co.kr', 'kauth.kakao.com', 'kapi.kakao.com', 'appleid.apple.com', 'pf.kakao.com', ...(__DEV__ ? ['porodev.asuscomm.com'] : [])];
 function App(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -55,6 +57,12 @@ function App(): JSX.Element {
     setIsLoading(navState.loading);
   };
 
+  const requestCamera = async () => {
+    const permitted = Platform.OS !== 'android' || await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+      title: 'QR 스캔 카메라 권한', message: '우산 대여와 반납 QR을 스캔하기 위해 카메라를 사용합니다.', buttonPositive: '허용', buttonNegative: '취소',
+    }) === PermissionsAndroid.RESULTS.GRANTED;
+    webViewRef.current?.injectJavaScript(`window.dispatchEvent(new CustomEvent('upbrella-camera-result', { detail: ${permitted} })); true;`);
+  };
   const renderLoading = () => (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color="#007AFF" />
@@ -68,12 +76,26 @@ function App(): JSX.Element {
       {isLoading && renderLoading()}
       <WebView
         ref={webViewRef}
-        source={{uri: 'https://upbrella.co.kr'}}
+        source={{uri: APP_URL}}
         style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={false}
-        mixedContentMode="compatibility"
+        sharedCookiesEnabled={true}
+        thirdPartyCookiesEnabled={true}
+        incognito={false}
+        applicationNameForUserAgent="UpbrellaApp"
+        allowsInlineMediaPlayback={true}
+        mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+        mixedContentMode="never"
+        onMessage={event => { if (event.nativeEvent.data === 'upbrella:camera') requestCamera(); }}
+        onShouldStartLoadWithRequest={request => {
+          if (request.url === 'about:blank') return true;
+          const host = /^https:\/\/([^/:?#]+)/i.exec(request.url)?.[1]?.toLowerCase();
+          if (host && allowedHosts.includes(host)) return true;
+          if (/^(https?:|kakaotalk:|kakaokompassauth:|mailto:|tel:)/i.test(request.url)) Linking.openURL(request.url).catch(() => {});
+          return false;
+        }}
         allowsBackForwardNavigationGestures={true}
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
